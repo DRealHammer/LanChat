@@ -1,0 +1,3 @@
+read/write threads evtl
+connection klappt nicht ganz
+keep alive
