@@ -4,35 +4,18 @@
 
 
 LanChat::LanChat(int port, std::string ip)
-: inChat(false), isRunning(true), serverSocket(0), sendSocket(0), readSocket(0), own_port(port){
+: inChat(false), isRunning(true), own_port(port){
     // create tcp server socket to given port
 
-    if((this->serverSocket = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-        std::cerr << "socket creation failed" << std::endl;;
-    }
-    this->own_addrlen = sizeof(this->own_addr);
-
-    this->own_addr.sin_family = AF_INET;
-
-    inet_aton(ip.c_str(), &own_addr.sin_addr);
     
-
-    own_addr.sin_port = htons(port);
-
-    if(bind(serverSocket, (struct sockaddr *) &own_addr, sizeof(this->own_addr)) == -1){
-        std::cerr << "binding of socket failed" << std::endl;
-        perror(NULL);
-    }
+    this->serverSocket.bindTCP(ip, port);
+    
 
     // set the serverSocket to non blocking, so it can jump over the accept() in the
     // mainloop
 
     // let the socket listen
-    if (listen(serverSocket, 2) == -1){
-            // error bei listen
-            std::cerr << "listen failed" << std::endl;
-            perror(NULL);
-    }
+    this->serverSocket.listenTCP(MAX_QUEUE);
     
 }
 

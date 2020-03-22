@@ -23,6 +23,9 @@
 // for timeout when checking if somebody tries to connect
 #include <sys/time.h>
 
+#include "TCPSocket.hh"
+
+#define MAX_QUEUE 2
 
 
 class LanChat{
@@ -39,16 +42,10 @@ public:
     
 private:
 
-    int serverSocket, sendSocket, readSocket;
+    TCPSocket serverSocket, sendSocket, readSocket;
     int own_port;
 
     bool inChat, isRunning;
-
-    sockaddr_in own_addr;
-    socklen_t own_addrlen;
-
-    sockaddr_in cli_addr;
-    socklen_t cli_addrlen;
 
     std::thread listener;
     std::thread commander;
@@ -60,8 +57,6 @@ private:
     void acceptConnection();
 
     void console();
-
-    
 };
 
 
