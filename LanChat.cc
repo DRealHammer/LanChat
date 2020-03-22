@@ -4,7 +4,7 @@
 
 
 LanChat::LanChat(int port, std::string ip)
-: inChat(false), isRunning(true), own_port(port){
+: inChat(false), isRunning(true), own_port(port), own_ip(ip){
     // create tcp server socket to given port
 
     
@@ -44,7 +44,7 @@ void LanChat::console(){
 
     if (input == "/exit"){
         this->isRunning = false;
-        close(this->serverSocket);
+        serverSocket.closeTCP();
 
     }else if (input == "/connect"){
         // open new terminal window
@@ -71,10 +71,9 @@ void LanChat::console(){
             std::cout << "You're currently not in a chat ('/connect <ip> <port>' to connect, '/exit' to quit" << std::endl;
 
         }else{
-            close(this->sendSocket);
-            close(this->readSocket);
+            sendSocket.closeTCP();
+            readSocket.closeTCP();
             inChat = false;
-            
         }
     }
 
@@ -89,80 +88,46 @@ void LanChat::console(){
 void LanChat::acceptConnections(){
 
     std::cout << "thread with acceptConnections() started" << std::endl;
-    sockaddr_in incoming;
-    socklen_t incoming_len = sizeof(incoming);
 
-    while(isRunning){
-
-        if(this->inChat){
-            
-            return;
-        }
-
-        this->readSocket = accept(serverSocket, (sockaddr*) &incoming, &incoming_len);
-
-        if(!isRunning){
-            //the accept ended because the socket was closed
-            return;
-        }
-
-        if(inChat){
-            return;
-        }
-
-        std::cout << "accepted an incoming connection" << std::endl;
-
-        // failed
-        if( this->readSocket == -1){
-            std::cerr << "failed to create connection to client (accept)" << std::endl;
-            perror(NULL);
-            
-        } else{
-            break;
-        }
+    if(this->inChat){
+        
+        return;
     }
+
+    this->readSocket = serverSocket.acceptTCP();
+
+    if(!isRunning){
+        //the accept ended because the socket was closed
+        return;
+    }
+
+    if(inChat){
+        return;
+    }
+
+    std::cout << "accepted an incoming connection" << std::endl;
+
 
     // setting a flag, so /connect can't make problems, while we establish the full connection
     this->inChat = true;
     std::cout << "set inChat to: " << inChat << std::endl;
 
+    
 
-    this->cli_addr = incoming;
-    this->cli_addrlen = incoming_len;
-
-    // create new socket to write/send to other user
-
-    if((this->sendSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1){
-        perror(NULL);
-        return;
-    }
-
-    char other_port[5];
-    memset(other_port, 0, 5);
     // get the port of the other user
-    read(this->readSocket, other_port, sizeof(char)*5);
+    std::string other_port = readSocket.recvTCP();
     std::cout << "partner port: " << other_port << std::endl;
 
-    int port = std::atoi(other_port);
+    int port = std::stoi(other_port);
 
     // connect to other user with the port he transmitted
 
-    sockaddr_in outgoing;
-    outgoing.sin_family = cli_addr.sin_family;
-    outgoing.sin_addr = cli_addr.sin_addr;
-    outgoing.sin_port = htons(port);
-    outgoing.sin_len = cli_addrlen;
+    sendSocket.connectTCP(readSocket.getIP(), readSocket.getPort());
 
-    if(connect(this->sendSocket, (sockaddr*)&outgoing, outgoing.sin_len)){
-        perror(NULL);
-        return;
-    }
 
-    
     std::cout << "both connections established, ready to send and receive" << std::endl;
     std::cout << "end of acceptConnections()" << std::endl;
 
-    
 }
 
 void LanChat::establishConnection(std::string ipaddress, int port){
@@ -170,44 +135,31 @@ void LanChat::establishConnection(std::string ipaddress, int port){
     if(inChat){
         return;
     }
-    
-    if((this->sendSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1){
-        perror(NULL);
-    }
 
-    std::cout << "send socket erstellt" << std::endl;
+    sendSocket.connectTCP(ipaddress, port);
 
-    this->cli_addr.sin_family = AF_INET;
-    inet_aton(ipaddress.c_str(), &this->cli_addr.sin_addr);
-    this->cli_addr.sin_port = htons(port);
-    socklen_t s = sizeof(this->cli_addr);
-
-    this->cli_addrlen = sizeof(this->cli_addrlen);
-
-
-    if (connect(this->sendSocket, (sockaddr *) &this->cli_addr, s) == -1){
-        perror(NULL);
-        return;
-    }
 
     std::cout << "connect war erfolgreich, sende eigenen port" << std::endl;
     // could connect to the other user
 
 
-    //send the port of own server for bidirectional communication
+    
 
-    //get the fricken port as chars
-    std::string p = std::to_string(this->own_port);
 
     this->inChat = true;
     // to let the listener thread end
-    close(this->serverSocket);
+    serverSocket.closeTCP();
 
     // open it, to get a new socket for the current process
-    this->serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    serverSocket.openTCP();
 
-    bind(this->serverSocket, (sockaddr*) &this->own_addr, this->own_addrlen);
-    write(sendSocket, p.c_str(), p.size()*sizeof(char));
+    // bind it again for the other user
+    serverSocket.bindTCP(this->own_ip, this->own_port);
+
+    //get the fricken port as chars
+    std::string own_p = std::to_string(this->own_port);
+    //send the port of own server for bidirectional communication
+    sendSocket.sendTCP(own_p);
 
     std::cout << "eigner port wurde übermittelt" <<std::endl;
     acceptConnection();
@@ -217,19 +169,13 @@ void LanChat::establishConnection(std::string ipaddress, int port){
 
 void LanChat::acceptConnection(){
 
-    sockaddr_in new_client;
-    socklen_t new_clilen;
 
-
-    this->readSocket = accept(this->serverSocket, (sockaddr *) &new_client, &new_clilen);
+    this->readSocket = serverSocket.acceptTCP();
 }
 
 LanChat::~LanChat(){
-    
-    close(this->serverSocket);
-    if(inChat){
-        close(this->sendSocket);
-        close(this->readSocket);
-    }
+    serverSocket.closeTCP();
+    sendSocket.closeTCP();
+    readSocket.closeTCP();
 }
 

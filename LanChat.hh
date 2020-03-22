@@ -44,6 +44,7 @@ private:
 
     TCPSocket serverSocket, sendSocket, readSocket;
     int own_port;
+    std::string own_ip;
 
     bool inChat, isRunning;
 

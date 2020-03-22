@@ -22,8 +22,8 @@ TCPSocket::TCPSocket():isConnected(false), isListening(false){
 
 }
 
-TCPSocket::TCPSocket(int _socket, sockaddr_in _address, socklen_t _addr_len)
-: s(_socket), isConnected(true), isListening(false), isOpen(true)
+TCPSocket::TCPSocket(int _socket, sockaddr_in _address, socklen_t _addr_len, std::string _ip, int _port)
+: s(_socket), isConnected(true), isListening(false), isOpen(true), address_str(_ip), port(_port)
 {
     // constructor for the accept() function
     // hence connected is true, because it comes from the server socket
@@ -31,9 +31,25 @@ TCPSocket::TCPSocket(int _socket, sockaddr_in _address, socklen_t _addr_len)
 
     this->address = _address;
     this->addr_len = _addr_len;
-    
+
 }
 
+void TCPSocket::openTCP(){
+    if (this->isOpen){
+        throw "already open";
+    }
+
+    int testSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    // failed
+    if(testSocket == -1){
+        throw "failed in opening a socket";
+    }
+
+    // socket was created
+    this->s = testSocket;
+    this->isOpen = true;
+}
 
 void TCPSocket::connectTCP(std::string _ip, int _port){
 
@@ -44,6 +60,9 @@ void TCPSocket::connectTCP(std::string _ip, int _port){
     if(this->isConnected){
         throw "this socket is already connected";
     }
+
+    this->address_str = _ip;
+    this->port = _port;
 
     this->address.sin_family = AF_INET;
     inet_aton(_ip.c_str(), &this->address.sin_addr);
@@ -58,6 +77,9 @@ void TCPSocket::connectTCP(std::string _ip, int _port){
 }
 
 void TCPSocket::bindTCP(std::string _ip, int _port){
+    this->address_str = _ip;
+    this->port = _port;
+
     this->address.sin_family = AF_INET;
     inet_aton(_ip.c_str(), &this->address.sin_addr);
     this->address.sin_port = htons(_port);
@@ -87,6 +109,21 @@ void TCPSocket::listenTCP(int _maxQueue){
     }
 }
 
+void TCPSocket::operator=(const TCPSocket& o){
+    if (this->isOpen){
+        this->closeTCP();
+    }
+    this->s = o.s;
+    this->isOpen = o.isOpen;
+    this->isConnected = o.isConnected;
+    this->isListening = o.isListening;
+
+    this->address_str = o.address_str;
+    this->port = o.port;
+    this->address = o.address;
+    this->addr_len = o.addr_len;
+}
+
 
 TCPSocket TCPSocket::acceptTCP(){
 
@@ -107,8 +144,15 @@ TCPSocket TCPSocket::acceptTCP(){
     }
 
     // we have a new socket in acceptTest
+    char addr_buf[30];
+    inet_ntop(AF_INET, &testAddress, addr_buf, testLen);
+    std::string addr(addr_buf);
 
-    return TCPSocket(acceptTest, testAddress, testLen);
+    int port = ntohs(testAddress.sin_port);
+
+    
+
+    return TCPSocket(acceptTest, testAddress, testLen, addr, port);
 
 }
 
@@ -134,6 +178,31 @@ std::string TCPSocket::recvTCP(){
 
     return std::string(buffer);
     
+}
+
+void TCPSocket::closeTCP(){
+    if(this->isOpen){
+        close(this->s);
+        this->isOpen = false;
+    }
+}
+
+std::string TCPSocket::getIP() const{
+    return this->address_str;
+}
+
+int TCPSocket::getPort() const{
+    return this->port;
+}
+
+bool TCPSocket::isOpen() const{
+    return this->isOpen;
+}
+bool TCPSocket::isConnected() const{
+    return this->isConnected;
+}
+bool TCPSocket::isListening() const{
+    return this->isListening;
 }
 
 TCPSocket::~TCPSocket(){
