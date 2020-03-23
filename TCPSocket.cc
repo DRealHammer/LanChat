@@ -148,8 +148,16 @@ void TCPSocket::operator=(const TCPSocket& o){
 }
 
 
-TCPSocket TCPSocket::acceptTCP(bool _blocking){
+TCPSocket TCPSocket::acceptTCP(int blocking){
 
+    bool _blocking;
+    if( blocking == BLOCKING){
+        _blocking = true;
+    }
+    if(blocking == NOT_BLOCKING){
+        _blocking = false;
+    }
+    
     if(!this->isListening){
         std::cerr << "this socket is not listening" << std::endl;
         perror(NULL);
@@ -187,8 +195,6 @@ TCPSocket TCPSocket::acceptTCP(bool _blocking){
         
     } else{
 
-        
-
         // we have a new socket in acceptTest
         char addr_buf[30];
         inet_ntop(AF_INET, &testAddress, addr_buf, testLen);
@@ -196,11 +202,9 @@ TCPSocket TCPSocket::acceptTCP(bool _blocking){
 
         int port = ntohs(testAddress.sin_port);
 
-
-
         return TCPSocket(acceptTest, testAddress, testLen, addr, port);
     }
-    return *this;
+    return TCPSocket();
 }
 
 void TCPSocket::sendTCP(std::string message){

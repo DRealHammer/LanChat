@@ -23,6 +23,9 @@
 
 #define NO_CONNECTION 1
 
+#define BLOCKING 0
+#define NOT_BLOCKING 1
+
 
 
 
@@ -55,7 +58,7 @@ public:
     void operator=(const TCPSocket& o);
 
     // if blocking is disabled, the socket will throw a NO_CONNECTION exception (int)
-    TCPSocket acceptTCP(bool _blocking = true);
+    TCPSocket acceptTCP(int _blocking);
     void sendTCP(std::string _message);
     std::string recvTCP();
 

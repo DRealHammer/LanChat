@@ -46,7 +46,7 @@ private:
     int own_port;
     std::string own_ip;
 
-    bool inChat, isRunning;
+    bool inChat, isRunning, isAccepting;
 
     std::thread listener;
     std::thread commander;
