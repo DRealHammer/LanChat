@@ -4,6 +4,7 @@
 
 #include <string>
 #include <exception>
+#include <iostream>
 
 // for sockets
 #include <sys/socket.h>
@@ -17,6 +18,11 @@
 // internet
 #include <arpa/inet.h>
 
+#include <fcntl.h>
+
+
+#define NO_CONNECTION 1
+
 
 
 
@@ -28,6 +34,7 @@ private:
     bool isOpen;
     bool isConnected;
     bool isListening;
+    bool isAccepting;
 
     std::string address_str;
     int port;
@@ -47,7 +54,8 @@ public:
 
     void operator=(const TCPSocket& o);
 
-    TCPSocket acceptTCP();
+    // if blocking is disabled, the socket will throw a NO_CONNECTION exception (int)
+    TCPSocket acceptTCP(bool _blocking = true);
     void sendTCP(std::string _message);
     std::string recvTCP();
 
@@ -56,9 +64,10 @@ public:
 
     std::string getIP() const;
     int getPort() const;
-    bool isOpen() const;
-    bool isConnected() const;
-    bool isListening() const;
+    bool getOpen() const;
+    bool getConnected() const;
+    bool getListening() const;
+    bool getAccepting() const;
 
     ~TCPSocket();
 
