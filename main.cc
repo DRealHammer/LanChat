@@ -14,7 +14,7 @@
 int main(int argc, char** argv){
 
     int port = PORT;
-    std::string ip = "";
+    std::string ip;
 
     std::vector<std::string> arguments;
     arguments.resize(argc);
@@ -46,7 +46,7 @@ int main(int argc, char** argv){
                 std::cout << "usage: ./<name> -a <ip> -p <port>" << std::endl;
                 return NO_PORT;
             } else{
-                ip = arguments[i+1];
+                ip = std::string(argv[i+1]);
             }
         }
         else if(arguments[i] == "-h" || arguments[i] == "--help"){
@@ -58,8 +58,8 @@ int main(int argc, char** argv){
         }
 
     }
-
     if (ip == ""){
+        std::cerr << "no ip given" << std::endl;
         return NO_IP_GIVEN;
     }
     LanChat chat(port, ip);
