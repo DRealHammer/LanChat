@@ -37,6 +37,9 @@ void LanChat::console(){
 
     while(this->isRunning){
         std::string input;
+        if(inChat){
+            std::cout << this->readSocket.getIP() << "@" << this->readSocket.getPort();
+        }
         std::cout << "> ";
         std::cin >> input;
 
