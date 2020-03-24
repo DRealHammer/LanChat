@@ -5,7 +5,4 @@ use
 make
 to compile the LanChat client. 
 
-Currently it is not working, hence there are problems with the socket focused on receiving messages on the side, which
-is asked to chat. 
-
-The side on which the connection is initiatied should work to this point.
+it is kinda working, but the end of a chat is a bit buggy as it is
