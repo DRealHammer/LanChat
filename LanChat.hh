@@ -50,6 +50,7 @@ private:
 
     std::thread listener;
     std::thread commander;
+    std::thread reader;
 
     // receives the new created socket
     void establishConnection(std::string ip, int port);
@@ -58,6 +59,8 @@ private:
     void acceptConnection();
 
     void console();
+    void sendMessage(std::string) const;
+    void recvMessages();
 };
 
 

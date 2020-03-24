@@ -147,16 +147,17 @@ void TCPSocket::operator=(const TCPSocket& o){
     this->addr_len = o.addr_len;
 }
 
+void TCPSocket::setBlocking(bool _blocking){
+    this->isBlocking = _blocking;
+    int flags = fcntl(this->s, F_GETFL);
+    flags = _blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    fcntl(this->s, F_SETFL, flags);
+}
 
-TCPSocket TCPSocket::acceptTCP(int blocking){
 
-    bool _blocking;
-    if( blocking == BLOCKING){
-        _blocking = true;
-    }
-    if(blocking == NOT_BLOCKING){
-        _blocking = false;
-    }
+TCPSocket TCPSocket::acceptTCP(){
+
+    
     
     if(!this->isListening){
         std::cerr << "this socket is not listening" << std::endl;
@@ -172,21 +173,17 @@ TCPSocket TCPSocket::acceptTCP(int blocking){
     sockaddr_in testAddress;
     socklen_t testLen;
 
-    if(!_blocking){
-        int flags = fcntl(this->s, F_GETFL);
-        fcntl(this->s, F_SETFL, (O_NONBLOCK | flags ));
-    }
 
     int acceptTest = accept(this->s, (sockaddr*) &testAddress, &testLen);
 
 
     if (acceptTest == -1){
-        if (_blocking){
+        if (this->isBlocking){
             std::cerr << "accept failed" << std::endl;
             perror(NULL);
         }else{
             if( errno == EWOULDBLOCK || errno == EAGAIN){
-                throw NO_CONNECTION;
+                throw NO_DATA;
             } else{
                 std::cerr << "accept failed" << std::endl;
                 perror(NULL);
@@ -195,9 +192,12 @@ TCPSocket TCPSocket::acceptTCP(int blocking){
         
     } else{
 
+
         // we have a new socket in acceptTest
-        char addr_buf[30];
-        inet_ntop(AF_INET, &testAddress, addr_buf, testLen);
+        char addr_buf[INET_ADDRSTRLEN];
+        memset(addr_buf, 0, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &testAddress.sin_addr, addr_buf, INET_ADDRSTRLEN);
+        
         std::string addr(addr_buf);
 
         int port = ntohs(testAddress.sin_port);
@@ -207,7 +207,7 @@ TCPSocket TCPSocket::acceptTCP(int blocking){
     return TCPSocket();
 }
 
-void TCPSocket::sendTCP(std::string message){
+void TCPSocket::sendTCP(std::string message) const{
     if(message.size() > BUFFER){
         std::cerr << "to big message to send" << std::endl;
         perror(NULL);
@@ -226,6 +226,9 @@ std::string TCPSocket::recvTCP(){
     memset(buffer, 0, BUFFER);
     int readTest = read(this->s, buffer, BUFFER*sizeof(char));
     if (readTest <= 0){
+        if(isBlocking && (errno == EWOULDBLOCK || errno == EAGAIN)){
+            throw NO_DATA;
+        }
         std::cerr << "failed to read from socket" << std::endl;
         perror(NULL);
         return "";
@@ -236,10 +239,8 @@ std::string TCPSocket::recvTCP(){
 }
 
 void TCPSocket::closeTCP(){
-    if(this->isOpen){
-        close(this->s);
-        this->isOpen = false;
-    }
+    close(this->s);
+    this->isOpen = false;
 }
 
 std::string TCPSocket::getIP() const{
@@ -261,7 +262,4 @@ bool TCPSocket::getListening() const{
 }
 
 TCPSocket::~TCPSocket(){
-    if(this->isOpen){
-        close(this->s);
-    }
 }

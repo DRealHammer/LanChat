@@ -21,7 +21,7 @@
 #include <fcntl.h>
 
 
-#define NO_CONNECTION 1
+#define NO_DATA 1
 
 #define BLOCKING 0
 #define NOT_BLOCKING 1
@@ -38,6 +38,7 @@ private:
     bool isConnected;
     bool isListening;
     bool isAccepting;
+    bool isBlocking;
 
     std::string address_str;
     int port;
@@ -57,9 +58,11 @@ public:
 
     void operator=(const TCPSocket& o);
 
+    void setBlocking(bool _blocking);
+
     // if blocking is disabled, the socket will throw a NO_CONNECTION exception (int)
-    TCPSocket acceptTCP(int _blocking);
-    void sendTCP(std::string _message);
+    TCPSocket acceptTCP();
+    void sendTCP(std::string _message) const;
     std::string recvTCP();
 
 
